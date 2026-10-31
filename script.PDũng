@@ -1,0 +1,409 @@
+-- ==========================================
+-- pDũngv1 - CLEAN & OPTIMIZED SCRIPT
+-- ==========================================
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+
+if CoreGui:FindFirstChild("pDungMenuMobile") then
+    CoreGui.pDungMenuMobile:Destroy()
+end
+
+local Settings = {
+    ESPEnabled = true,
+    ESPBox = true,
+    ESPHealth = true,
+    ESPTracer = true,
+    ESPDistanceMax = 2000,
+    HitboxEnabled = false,
+    HitboxSize = 2,
+    TargetPart = "UpperTorso",
+    NoEffects = false,
+    LowGraphics100 = false,
+    ShowFPS = true
+}
+
+local ESPList = {}
+local OriginalSizes = {}
+
+local FPSText = Drawing.new("Text")
+FPSText.Visible = true
+FPSText.Color = Color3.fromRGB(0, 255, 0)
+FPSText.Size = 16
+FPSText.Outline = true
+FPSText.Position = Vector2.new(15, 15)
+
+local ScreenGui = Instance.new("ScreenGui", CoreGui)
+ScreenGui.Name = "pDungMenuMobile"
+ScreenGui.ResetOnSpawn = false
+
+local ToggleMenuBtn = Instance.new("TextButton", ScreenGui)
+ToggleMenuBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleMenuBtn.Position = UDim2.new(0, 15, 0, 140)
+ToggleMenuBtn.Size = UDim2.new(0, 40, 0, 40)
+ToggleMenuBtn.Font = Enum.Font.SourceSansBold
+ToggleMenuBtn.Text = "pDũng"
+ToggleMenuBtn.TextColor3 = Color3.fromRGB(50, 255, 50)
+ToggleMenuBtn.TextSize = 11
+ToggleMenuBtn.Active = true
+ToggleMenuBtn.Draggable = true
+Instance.new("UICorner", ToggleMenuBtn).CornerRadius = UDim.new(1, 0)
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BackgroundTransparency = 0.1
+MainFrame.Position = UDim2.new(0, 65, 0, 70)
+MainFrame.Size = UDim2.new(0, 260, 0, 380)
+MainFrame.Active = true
+MainFrame.Draggable = true
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+
+ToggleMenuBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+end)
+
+local Title = Instance.new("TextLabel", MainFrame)
+Title.BackgroundTransparency = 1
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.Size = UDim2.new(0, 240, 0, 25)
+Title.Font = Enum.Font.SourceSansBold
+Title.Text = "pDũngv1 (Optimized)"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 12
+
+local function CreateTabButton(name, xPos, width)
+    local btn = Instance.new("TextButton", MainFrame)
+    btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+    btn.Position = UDim2.new(0, xPos, 0, 32)
+    btn.Size = UDim2.new(0, width, 0, 26)
+    btn.Font = Enum.Font.SourceSansBold
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    btn.TextSize = 11
+    return btn
+end
+
+local ESPTabBtn = CreateTabButton("ESP", 12, 74)
+local HitboxTabBtn = CreateTabButton("HITBOX", 93, 74)
+local OptTabBtn = CreateTabButton("GIẢM LAG", 174, 74)
+
+ESPTabBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+ESPTabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+local function CreateContainer()
+    local f = Instance.new("Frame", MainFrame)
+    f.BackgroundTransparency = 1
+    f.Position = UDim2.new(0, 0, 0, 65)
+    f.Size = UDim2.new(1, 0, 1, -65)
+    f.Visible = false
+    return f
+end
+
+local ESPContainer = CreateContainer(); ESPContainer.Visible = true
+local HitboxContainer = CreateContainer()
+local OptContainer = CreateContainer()
+
+local function SwitchTab(targetContainer, targetBtn)
+    ESPContainer.Visible = (targetContainer == ESPContainer)
+    HitboxContainer.Visible = (targetContainer == HitboxContainer)
+    OptContainer.Visible = (targetContainer == OptContainer)
+
+    for _, btn in ipairs({ESPTabBtn, HitboxTabBtn, OptTabBtn}) do
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+        btn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    end
+    targetBtn.BackgroundColor3 = Color3.fromRGB(50, 150, 255)
+    targetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+end
+
+ESPTabBtn.MouseButton1Click:Connect(function() SwitchTab(ESPContainer, ESPTabBtn) end)
+HitboxTabBtn.MouseButton1Click:Connect(function() SwitchTab(HitboxContainer, HitboxTabBtn) end)
+OptTabBtn.MouseButton1Click:Connect(function() SwitchTab(OptContainer, OptTabBtn) end)
+
+local function CreateSlider(parent, name, yPos, minVal, maxVal, currentVal, callback)
+    local Label = Instance.new("TextLabel", parent)
+    Label.BackgroundTransparency = 1
+    Label.Position = UDim2.new(0, 10, 0, yPos)
+    Label.Size = UDim2.new(0, 240, 0, 16)
+    Label.Font = Enum.Font.SourceSans
+    Label.Text = name .. ": " .. currentVal
+    Label.TextColor3 = Color3.fromRGB(220, 220, 220)
+    Label.TextSize = 11
+    Label.TextXAlignment = Enum.TextXAlignment.Left
+
+    local SliderBar = Instance.new("TextButton", parent)
+    SliderBar.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+    SliderBar.Position = UDim2.new(0, 10, 0, yPos + 16)
+    SliderBar.Size = UDim2.new(0, 240, 0, 12)
+    SliderBar.Text = ""
+
+    local FillBar = Instance.new("Frame", SliderBar)
+    FillBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+    FillBar.Size = UDim2.new((currentVal - minVal) / (maxVal - minVal), 0, 1, 0)
+    FillBar.BorderSizePixel = 0
+
+    local dragging = false
+    SliderBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = true end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local percent = math.clamp((input.Position.X - SliderBar.AbsolutePosition.X) / SliderBar.AbsoluteSize.X, 0, 1)
+            local val = math.floor(minVal + (maxVal - minVal) * percent + 0.5)
+            FillBar.Size = UDim2.new(percent, 0, 1, 0)
+            Label.Text = name .. ": " .. val
+            callback(val)
+        end
+    end)
+end
+
+local ESPButton = Instance.new("TextButton", ESPContainer)
+ESPButton.BackgroundColor3 = Color3.fromRGB(20, 80, 20)
+ESPButton.Position = UDim2.new(0, 10, 0, 5)
+ESPButton.Size = UDim2.new(0, 240, 0, 30)
+ESPButton.Font = Enum.Font.SourceSansBold
+ESPButton.Text = "ESP Player: BẬT"
+ESPButton.TextColor3 = Color3.fromRGB(50, 255, 50)
+ESPButton.TextSize = 12
+
+ESPButton.MouseButton1Click:Connect(function()
+    Settings.ESPEnabled = not Settings.ESPEnabled
+    ESPButton.Text = "ESP Player: " .. (Settings.ESPEnabled and "BẬT" or "TẮT")
+    ESPButton.TextColor3 = Settings.ESPEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    ESPButton.BackgroundColor3 = Settings.ESPEnabled and Color3.fromRGB(20, 80, 20) or Color3.fromRGB(40, 40, 40)
+    if not Settings.ESPEnabled then
+        for _, esp in pairs(ESPList) do
+            for _, obj in pairs(esp) do obj.Visible = false end
+        end
+    end
+end)
+
+local TracerBtn = Instance.new("TextButton", ESPContainer)
+TracerBtn.BackgroundColor3 = Color3.fromRGB(20, 80, 20)
+TracerBtn.Position = UDim2.new(0, 10, 0, 40)
+TracerBtn.Size = UDim2.new(0, 240, 0, 26)
+TracerBtn.Font = Enum.Font.SourceSansBold
+TracerBtn.Text = "ESP Tia Player: BẬT"
+TracerBtn.TextColor3 = Color3.fromRGB(50, 255, 50)
+TracerBtn.TextSize = 12
+
+TracerBtn.MouseButton1Click:Connect(function()
+    Settings.ESPTracer = not Settings.ESPTracer
+    TracerBtn.Text = "ESP Tia Player: " .. (Settings.ESPTracer and "BẬT" or "TẮT")
+    TracerBtn.TextColor3 = Settings.ESPTracer and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    TracerBtn.BackgroundColor3 = Settings.ESPTracer and Color3.fromRGB(20, 80, 20) or Color3.fromRGB(40, 40, 40)
+    if not Settings.ESPTracer then
+        for _, esp in pairs(ESPList) do esp.Tracer.Visible = false end
+    end
+end)
+
+CreateSlider(ESPContainer, "Tầm nhìn ESP (Mét)", 72, 1, 2000, Settings.ESPDistanceMax, function(v) Settings.ESPDistanceMax = v end)
+
+local HitboxButton = Instance.new("TextButton", HitboxContainer)
+HitboxButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+HitboxButton.Position = UDim2.new(0, 10, 0, 5)
+HitboxButton.Size = UDim2.new(0, 240, 0, 30)
+HitboxButton.Font = Enum.Font.SourceSansBold
+HitboxButton.Text = "Tăng Hitbox: TẮT"
+HitboxButton.TextColor3 = Color3.fromRGB(255, 50, 50)
+HitboxButton.TextSize = 13
+
+HitboxButton.MouseButton1Click:Connect(function()
+    Settings.HitboxEnabled = not Settings.HitboxEnabled
+    HitboxButton.Text = "Tăng Hitbox: " .. (Settings.HitboxEnabled and "BẬT" or "TẮT")
+    HitboxButton.TextColor3 = Settings.HitboxEnabled and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    HitboxButton.BackgroundColor3 = Settings.HitboxEnabled and Color3.fromRGB(20, 80, 20) or Color3.fromRGB(40, 40, 40)
+    
+    if not Settings.HitboxEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local part = p.Character:FindFirstChild(Settings.TargetPart) or p.Character:FindFirstChild("Torso")
+                if part and OriginalSizes[part] then
+                    part.Size = OriginalSizes[part]
+                    part.Transparency = 0
+                    part.CanCollide = false
+                    part.Massless = false
+                end
+            end
+        end
+    end
+end)
+
+CreateSlider(HitboxContainer, "Kích thước Hitbox (1-100)", 45, 1, 100, Settings.HitboxSize, function(v) Settings.HitboxSize = v end)
+
+local LowGraphicsBtn = Instance.new("TextButton", OptContainer)
+LowGraphicsBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+LowGraphicsBtn.Position = UDim2.new(0, 10, 0, 5)
+LowGraphicsBtn.Size = UDim2.new(0, 240, 0, 28)
+LowGraphicsBtn.Font = Enum.Font.SourceSansBold
+LowGraphicsBtn.Text = "Giảm 100% Đồ Hoạ: TẮT"
+LowGraphicsBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+LowGraphicsBtn.TextSize = 12
+
+LowGraphicsBtn.MouseButton1Click:Connect(function()
+    Settings.LowGraphics100 = not Settings.LowGraphics100
+    LowGraphicsBtn.Text = "Giảm 100% Đồ Hoạ: " .. (Settings.LowGraphics100 and "ĐÃ BẬT" or "TẮT")
+    LowGraphicsBtn.TextColor3 = Settings.LowGraphics100 and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    LowGraphicsBtn.BackgroundColor3 = Settings.LowGraphics100 and Color3.fromRGB(20, 80, 20) or Color3.fromRGB(40, 40, 40)
+    
+    Lighting.GlobalShadows = not Settings.LowGraphics100
+    if Settings.LowGraphics100 then Lighting.FogEnd = 9e9 end
+    for _, v in pairs(Lighting:GetChildren()) do
+        if v:IsA("PostEffect") or v:IsA("Atmosphere") or v:IsA("Clouds") then
+            v.Enabled = not Settings.LowGraphics100
+        end
+    end
+end)
+
+local EffectsBtn = Instance.new("TextButton", OptContainer)
+EffectsBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+EffectsBtn.Position = UDim2.new(0, 10, 0, 38)
+EffectsBtn.Size = UDim2.new(0, 240, 0, 28)
+EffectsBtn.Font = Enum.Font.SourceSansBold
+EffectsBtn.Text = "Xóa 100% Hiệu ứng: TẮT"
+EffectsBtn.TextColor3 = Color3.fromRGB(255, 50, 50)
+EffectsBtn.TextSize = 12
+
+EffectsBtn.MouseButton1Click:Connect(function()
+    Settings.NoEffects = not Settings.NoEffects
+    EffectsBtn.Text = "Xóa 100% Hiệu ứng: " .. (Settings.NoEffects and "ĐÃ BẬT" or "TẮT")
+    EffectsBtn.TextColor3 = Settings.NoEffects and Color3.fromRGB(50, 255, 50) or Color3.fromRGB(255, 50, 50)
+    EffectsBtn.BackgroundColor3 = Settings.NoEffects and Color3.fromRGB(20, 80, 20) or Color3.fromRGB(40, 40, 40)
+    
+    if Settings.NoEffects then
+        for _, v in pairs(workspace:GetDescendants()) do
+            if v:IsA("ParticleEmitter") or v:IsA("Fire") or v:IsA("Smoke") or v:IsA("Sparkles") or v:IsA("Explosion") then
+                v:Destroy()
+            end
+        end
+    end
+end)
+
+local function SetupESP(player)
+    if player == LocalPlayer then return end
+    local esp = {
+        Box = Drawing.new("Square"),
+        HealthBar = Drawing.new("Square"),
+        HealthFill = Drawing.new("Square"),
+        Tracer = Drawing.new("Line")
+    }
+    esp.Box.Thickness = 1.5; esp.Box.Filled = false; esp.Box.Color = Color3.fromRGB(255, 255, 255)
+    esp.HealthBar.Thickness = 1; esp.HealthBar.Filled = true; esp.HealthBar.Color = Color3.fromRGB(0, 0, 0)
+    esp.HealthFill.Thickness = 1; esp.HealthFill.Filled = true
+    esp.Tracer.Thickness = 1; esp.Tracer.Color = Color3.fromRGB(255, 255, 255)
+    
+    for _, obj in pairs(esp) do obj.Visible = false end
+    ESPList[player] = esp
+end
+
+for _, p in pairs(Players:GetPlayers()) do SetupESP(p) end
+Players.PlayerAdded:Connect(SetupESP)
+Players.PlayerRemoving:Connect(function(p)
+    if ESPList[p] then
+        for _, obj in pairs(ESPList[p]) do obj:Remove() end
+        ESPList[p] = nil
+    end
+end)
+
+local lastFPS = 0
+RunService.RenderStepped:Connect(function(dt)
+    if Settings.ShowFPS then
+        lastFPS = lastFPS + dt
+        if lastFPS >= 0.5 then
+            FPSText.Text = "FPS: " .. math.floor(1 / dt)
+            lastFPS = 0
+        end
+    end
+
+    if Settings.HitboxEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character then
+                local realPlayer = Players:GetPlayerFromCharacter(p.Character)
+                if realPlayer then
+                    local part = p.Character:FindFirstChild(Settings.TargetPart) or p.Character:FindFirstChild("Torso")
+                    if part then
+                        if not OriginalSizes[part] then OriginalSizes[part] = part.Size end
+                        part.Size = Vector3.new(Settings.HitboxSize, Settings.HitboxSize, Settings.HitboxSize)
+                        part.Transparency = 0.5
+                        part.CanCollide = false
+                        part.Massless = true
+                    end
+                end
+            end
+        end
+    end
+
+    for p, esp in pairs(ESPList) do
+        local char = p.Character
+        local realPlayer = char and Players:GetPlayerFromCharacter(char)
+        local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+        local active = Settings.ESPEnabled and realPlayer and humanoid and humanoid.Health > 0
+        local rootPart = active and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso"))
+        
+        if rootPart then
+            local dist = (rootPart.Position - Camera.CFrame.Position).Magnitude
+            if dist <= Settings.ESPDistanceMax then
+                local screenPos, _ = Camera:WorldToViewportPoint(rootPart.Position)
+                
+                if screenPos.Z > 0 then
+                    local cf = char:GetPivot()
+                    local topPos, topVis = Camera:WorldToViewportPoint((cf + Vector3.new(0, 2.8, 0)).Position)
+                    local botPos, botVis = Camera:WorldToViewportPoint((cf - Vector3.new(0, 2.5, 0)).Position)
+                    
+                    if topVis and botVis then
+                        local h = math.abs(topPos.Y - botPos.Y)
+                        local w = h / 2
+                        local topLeft = Vector2.new(topPos.X - w / 2, topPos.Y)
+
+                        if Settings.ESPBox then
+                            esp.Box.Size = Vector2.new(w, h)
+                            esp.Box.Position = topLeft
+                            esp.Box.Visible = true
+                        else
+                            esp.Box.Visible = false
+                        end
+
+                        if Settings.ESPHealth then
+                            local hp = math.clamp(humanoid.Health / humanoid.MaxHealth, 0, 1)
+                            esp.HealthBar.Size = Vector2.new(4, h)
+                            esp.HealthBar.Position = Vector2.new(topLeft.X - 6, topLeft.Y)
+                            esp.HealthBar.Visible = true
+
+                            esp.HealthFill.Size = Vector2.new(2, h * hp)
+                            esp.HealthFill.Position = Vector2.new(topLeft.X - 5, topLeft.Y + (h * (1 - hp)))
+                            esp.HealthFill.Color = Color3.fromHSV(hp * 0.3, 1, 1)
+                            esp.HealthFill.Visible = true
+                        else
+                            esp.HealthBar.Visible = false
+                            esp.HealthFill.Visible = false
+                        end
+
+                        if Settings.ESPTracer then
+                            esp.Tracer.From = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y)
+                            esp.Tracer.To = Vector2.new(topPos.X, topPos.Y + h)
+                            esp.Tracer.Visible = true
+                        else
+                            esp.Tracer.Visible = false
+                        end
+                    else
+                        for _, obj in pairs(esp) do obj.Visible = false end
+                    end
+                else
+                    for _, obj in pairs(esp) do obj.Visible = false end
+                end
+            else
+                for _, obj in pairs(esp) do obj.Visible = false end
+            end
+        else
+            for _, obj in pairs(esp) do obj.Visible = false end
+        end
+    end
+end)
